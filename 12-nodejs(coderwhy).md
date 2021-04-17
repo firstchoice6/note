@@ -2097,7 +2097,19 @@ server.listen(8000, () => {
   })
   ```
 
-  
+  - 使用express
+
+    ```js
+    const express = require("express")
+    const app = express()
+    
+    app.use(express.json())
+    // true 使用qs库
+    // false 使用node内部的querystring模块
+    app.use(express.urlencoded({extended:true}))
+    ```
+
+- 中间件应用:解析form-data
 
 
 
