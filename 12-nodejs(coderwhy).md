@@ -1700,3 +1700,406 @@ reader.on("close", () => console.log("文件关闭"))
 
 ```
 
+#### 9.2 writable
+```js
+const fs = require('fs')
+
+// fs.writeFile("./test.txt","hello stream",{flag:"a"},console.log)
+
+const writer  = fs.createWriteStream('./bar.txt',{
+  flags:"a",
+  start:4
+})
+
+writer.write("你好",err=>{
+  if(err) return console.log(err)
+  console.log("success")
+})
+
+writer.write("liz",err=>{
+  if(err) return console.log(err)
+  console.log("success")
+})
+
+// writer.close()
+//  end = write + close
+writer.end("结束的时候写入的东西")
+
+writer.on("close",()=>{console.log("文件关闭")})
+```
+
+#### 9.3 pipe
+
+```js
+const fs = require('fs')
+
+const reader = fs.createReadStream("./foo.txt")
+const writer = fs.createWriteStream("./bar.txt")
+
+// 直接写入writer流
+reader.pipe(writer)
+```
+
+### 10 Http模块
+
+- 安装nodemon
+
+```shell
+npm i nodemon -g
+```
+
+#### 10.1 基本操作
+
+- 创建服务器
+
+  ```js
+  const http = require("http")
+  
+  const serve = http.createServer((req,res)=>{
+      // request请求对象 response响应对象
+      res.end("hello")
+  })
+  
+  // 方式二  
+  const serve =  new http.Server()
+  // 方式一的本质是方式二
+  
+  serve.listen(8000,()=>{
+    console.log("服务启动成功")
+  })
+  ```
+
+- 监听主机和端口号
+
+  > listen函数有三个参数
+  >
+  > - 端口port: 可以不传, 系统会默认分配端
+  > - 主机host: 可以不传 通常可以传入localhost、ip地址127.0.0.1、或者ip地址0.0.0.0，默认是0.0.0.0；
+  > - 回调函数：服务器启动成功时的回调函数；
+
+#### 10.2 request对象
+
+> request对象封装了客户端给服务器传递的所有信息
+>
+> - url
+> - method
+> - headers
+
+- url的处理
+
+  ```js
+  const url = require("url")
+  // 解析url
+  url.parse(req.url)
+  ```
+
+- query的处理
+
+  ```js
+  const http = require("http")
+  const url = require("url")
+  const qs = require("querystring")
+  
+  const serve = http.createServer((req,res)=>{
+    const {query} = url.parse(req.url)
+    const {name} = qs.parse(query)
+    console.log(name)
+    res.end("hello")
+  })
+  
+  ```
+
+- post方式
+
+  ```js
+  const http = require("http")
+  const url = require("url")
+  
+  const serve = http.createServer((req, res) => {
+    const { pathname } = url.parse(req.url)
+    console.log(pathname)
+    if (pathname === "/login") {
+      if (req.method === "POST") {
+        req.on('data', data => console.log(data.toString()))
+         
+        res.end("hello")
+      }
+    }
+  })
+  ```
+
+  - 也可以提前设置字符集
+
+    ```js
+     req.setEncoding("utf-8")
+     req.on('data', console.log)
+    ```
+
+  - 使用`JSON.parse`解析body
+
+    ```js
+    req.on('data', data => {
+    	const {name} = JSON.parse(data)
+    })
+    ```
+
+- headers
+  - application/json表示是一个json类型；
+  - text/plain表示是文本类型；
+  - application/xml表示是xml类型；
+  - multipart/form-data表示是上传文件；
+  - content-length：文件的大小和长度
+  - keep-alive
+  -  accept-encoding：告知服务器，客户端支持的文件压缩格式，比如js文件可以使用gzip编码，对应 .gz文件；
+  - accept：告知服务器，客户端可接受文件的格式类型；
+  - user-agent：客户端相关的信息；
+
+#### 10.3 response对象
+
+- 设置状态码
+
+  ```js
+  const http = require("http")
+  
+  const serve = http.createServer((req, res) => {
+    // 设置状态码
+    // 方式一 属性赋值
+    res.statusCode = 401
+    // 方式二 和head一起设置
+    res.writeHead(503)
+  })
+  ```
+
+- 响应header
+
+  ```js
+  // 方式一
+  res.setHeader("Content-Type","text/plain")
+  
+  // 方式二
+  res.writeHead(200,{
+      "Content-Type","text/plain"
+  })
+  ```
+
+#### 10.4 http请求
+
+- 原生
+
+  ```js
+  // get方式
+  http.get("http://localhost:8000", res => {
+    res.setEncoding("utf-8")
+    res.on("data", console.log)
+  })
+  
+  // post方式
+  http.request({
+    method:"POST",
+    hostname:"localhost",
+    port:8000
+  },res=>{
+    res.setEncoding("utf-8")
+    res.on("data", console.log)
+  }).end()
+  ```
+
+- 使用axios
+
+  >  axios库可以在浏览器中使用，也可以在Node中使用：
+  >
+  > - 在浏览器中，axios使用的是封装xhr； 
+  > - 在Node中，使用的是http内置模块；
+
+#### 10.5 ~~文件上传(原生)~~
+
+```js
+const http = require('http');
+const fs = require('fs');
+const qs = require('querystring');
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/upload') {
+    if (req.method === 'POST') {
+      req.setEncoding('binary');
+
+      let body = '';
+      const totalBoundary = req.headers['content-type'].split(';')[1];
+      const boundary = totalBoundary.split('=')[1];
+
+      req.on('data', (data) => {
+        body += data;
+      });
+
+      req.on('end', () => {
+        console.log(body);
+        // 处理body
+        // 1.获取image/png的位置
+        const payload = qs.parse(body, "\r\n", ": ");
+        const type = payload["Content-Type"];
+
+        // 2.开始在image/png的位置进行截取
+        const typeIndex = body.indexOf(type);
+        const typeLength = type.length;
+        let imageData = body.substring(typeIndex + typeLength);
+
+        // 3.将中间的两个空格去掉
+        imageData = imageData.replace(/^\s\s*/, '');
+
+        // 4.将最后的boundary去掉
+        imageData = imageData.substring(0, imageData.indexOf(`--${boundary}--`));
+
+        fs.writeFile('./foo.png', imageData, 'binary', (err) => {
+          res.end("文件上传成功~");
+        })
+      })
+    }
+  }
+});
+
+server.listen(8000, () => {
+  console.log("文件上传服务器开启成功~");
+})
+
+```
+
+### 11 express框架
+
+#### 11.1 基本使用
+
+- 搭建环境
+
+  ```shell
+  npm init 
+  npm i express
+  ```
+
+- 基本使用
+
+  ```js
+  const express = require("express")
+  
+  // express 本质是一个函数createApplication
+  // 返回app
+  const app = express()
+  
+  // 监听默认路径
+  
+  app.get('/',(req,res,next)=>{
+    res.end("hello ")
+  })
+  
+  app.listen(8000,()=>{
+    console.log('启动成功')
+  })
+  ```
+
+#### 11.2 脚手架方式
+
+- 安装
+
+  ```shell
+  npm i express-generator -g
+  ```
+
+- 创建项目
+
+  ```shell
+  express express-demo
+  ```
+
+- 安装依赖
+
+  ```shell
+  npm i
+  ```
+
+- 启动
+
+  ```shell
+  node bin/www
+  ```
+
+  
+
+#### 11.3 中间件
+
+> 本质是传递给express的回调函数
+>
+> - 请求对象（request对象）； 
+> - 响应对象（response对象）；
+> - next函数（在express中定义的用于执行下一个中间件的函数）；
+
+- 普通的中间件
+
+  ```js
+  // 普通的中间件
+  // use方式注册一个中间件 
+  app.use((req,res,next)=>{
+    console.log('注册了一个普通的中间件')
+      next()
+  })
+  
+  app.use((req,res,next)=>{
+    console.log('注册了一个普通的中间件2')
+    res.end("hello midware")
+  })
+  ```
+
+  - 不写路径方式 响应所有请求方式 所有请求路径
+  - 不写next() 只响应第一个
+  - res.end()一般写最后一个
+
+- 路径匹配中间件
+
+  ```js
+  app.use("/login",(req,res,next)=>{
+    console.log('注册了一个匹配路径的中间件')
+    res.end("hello world")
+  })
+  ```
+
+- 路径和方法中间件
+
+  ```js
+  app.get("/login",(req,res,next)=>{
+    console.log('路径和方法中间件')
+    res.end("hello world")
+  })
+  ```
+  
+- 连续注册中间件
+
+  ```js
+  app.get("/login",
+    (req,res,next)=>{
+    console.log('注册了一个匹配路径的中间件')
+    next()
+  },(req,res,next)=>{
+    console.log('注册了一个匹配路径的中间件2')
+    res.end("hello world")
+  })
+  ```
+
+- 中间件应用:`JSON`解析
+
+  ```js
+  app.use((req, res, next) => {
+    if (req.headers["content-type"] === "application/json") {
+      req.on('data', data => {
+        const info = JSON.parse(data.toString())
+        req.body = info
+        next()
+      })
+    } else {
+      next()
+    }
+  })
+  ```
+
+  
+
+
+
+
+
