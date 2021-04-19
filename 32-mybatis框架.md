@@ -1,4 +1,4 @@
-# Mybatis
+# My-batis
 
 ## 1 基本概念
 
