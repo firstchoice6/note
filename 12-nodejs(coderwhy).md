@@ -1,4 +1,19 @@
+[toc]
+
 ## Node.js
+
+### 0 终端的基本操作
+
+```shell
+md #创建目录
+rd(rmdir) #删除目录，目录内没有文档
+echo on a.txt #创建空文件
+del #删除文件
+rm 文件名 #删除文件
+cat 文件名 #查看文件内容
+cat > 文件名 #向文件中写上内容
+cls #清屏
+```
 
 ### 1 基本操作
 
@@ -2110,6 +2125,517 @@ server.listen(8000, () => {
     ```
 
 - 中间件应用:解析form-data
+
+  ```shell
+   npm install multer
+  ```
+
+  - 解析文本
+
+  ```js
+  const multer = require("multer")
+  
+  const upload = multer()
+  // 可以解析其他任意类型(text) 
+  app.use(upload.any())
+  
+  ```
+
+app.post("/login")
+  ```
+
+  - 解析文件
+  
+  ```js
+  const upload = multer({
+      dest:"./uploads/"
+  })
+  
+  app.use(upload.any())
+  // 获取上传文件 并保存
+  // single 单个文件 array 多个文件
+  app.post("upload",upload.single('key'),(req,res,next)=>{
+      res.end("文件上传成功")
+})
+  ```
+
+  - 自定义文件信息
+
+  ```js
+  const path = require("path")
+  const storage = multer.diskStorage({
+      destination:(req,file,callback)=>{
+          callback(null,'./uploads/')
+      },
+      filename:(req,file,callback)=>{
+          callback(null,"foo.png",Date.now() + path.extname(file.originalname))
+      } 
+  })
+  const upload = multer({
+      storage
+  })
+  
+  // 获取上传文件 并保存
+  // single 单个文件 array 多个文件
+  app.post("upload",upload.fields([{name:'file',maxCount:2}]),(req,res,next)=>{
+      res.end("文件上传成功")
+  })
+  ```
+
+  - <span style="color:red">注意:  </span>有文件上传需求时`app.use(upload.any())`不要写成全局的,防止恶意上传,旨在需要处理文件上传的路由中使用
+  
+- 中间件应用:日志
+
+  ```shell
+  npm i morgan
+  ```
+
+  ```js
+  const morgan = require("morgan")
+  const writerStream = fs.createWriteStream("./logs/access.log",{
+      flag:"a+"
+  })
+  
+  app.use(morgan("combined",{stream:writerStream}))
+  ```
+
+#### 11.4 其他
+
+- params
+
+  - 请求地址
+
+    ```text
+    http://localhost:8000/login/abc/why
+    ```
+
+  - 获取参数
+
+    ```js
+    app.use('/login/:id/:name',(req,res)=>{
+        console.log("请求成功,参数为" , req.params)
+        res.json("请求成功")
+    })
+    ```
+
+- query
+
+  - 请求地址
+
+    ```text
+    http://localhost:8000/login?username=why&password=123
+    ```
+
+  - 获取参数
+
+    ```js
+    app.use('/login',(req,res)=>{
+        console.log("请求成功,参数为" , req.query)
+        res.json("请求成功")
+    })
+    ```
+
+- 响应数据
+
+  -  end方法
+  - json方法
+  - status方法
+
+  ```js
+  res.end("success")
+  res.json({name:"jack"})
+  res.status(204)
+  ```
+
+- 路由的使用
+
+  ```shell
+  mkdir routers
+  cd .\routers\
+  New-item user.js
+  ```
+
+  - 导出
+
+  ```js
+  const express = require("express")
+  
+  const router = express.Router()
+  
+  router.get("/",(_,res,_)=>{
+    res.json(["why","coder"])
+  })
+  router.get("/:id",(req,res,_)=>{
+    res.json(`${req.params.id}用户的信息`)
+  })
+  router.post("/",(_,res,_)=>{
+    res.json("success")
+  })
+  module.exports = router
+  ```
+
+  - 导入(index.js)
+
+  ```js
+  const express = require("express")
+  
+  const userRouter = require("./routers/user")
+  const app = express()
+  
+  app.use("user",userRouter)
+  
+  app.listen(8000, () => {
+    console.log('启动成功')
+  })
+  ```
+
+- 静态资源服务器
+
+  ```js
+  const express = require("express")
+  const app = express()
+  app.use(express.static('./build'))
+  
+  app.listen(8000,()=>{
+      logs("静态服务器启动成功")
+  })
+  
+  ```
+
+- 服务端的错误处理
+
+  ```js
+  app.use((err,_,res,_)=>{
+      const msg = err.msg
+      
+      switch(message){
+          case "USER DOES NOT EXISTS":
+              res.status(400).json({msg})
+      }
+      
+      res.status(500)
+  })
+  
+  app.post("/register",(req,res,next)=>{
+      if(!isExists){
+          
+      }else{
+          next(new Error("username is already exists"))
+      }
+  })
+  ```
+
+### 12 koa框架
+
+#### 12.1 基本使用
+
+```shell
+npm i koa
+```
+
+```js
+const Koa = require("koa")
+const app = new Koa()
+app.use((ctx,next)=>{
+    // ctx.request ctx.response
+    ctx.response.body = "hello koa"
+})
+
+app.listen(8000,()=>{
+    console.log("running in 8000 port...")
+})
+```
+
+#### 12.2 注册中间件
+
+- 注意
+  - 没有`app.get()`
+  - 没有`app.use(path,callback)`
+  - 没有`app.use(callback1,callback2)`
+
+```js
+app.use((ctx,next)=>{
+  if(ctx.request.url === "/login"){
+    if(ctx.request.method === "GET"){
+      ctx.response.body = "success"
+    }
+  }else{
+    ctx.response.body = "other"
+  }
+})
+```
+
+#### 12.3 路由的使用
+
+- 安装
+
+```shell
+npm i koa-router
+```
+
+```shell
+md routers
+cd routers
+New-item user.js
+```
+
+- 导出
+
+```js
+const Koa = require("koa")
+const app = new Koa()
+const userRouter = require("./routers/user") 
+
+app.use(userRouter.routes())
+
+app.listen(8000,()=>{
+    console.log("running in 8000 port...")
+})
+```
+
+- 导入
+
+```js
+const Koa = require("koa")
+const app = new Koa()
+const userRouter = require("./routers/user") 
+
+app.use(userRouter.routes())
+// 405提示 Method Not Allowed 默认404 NOT FOUND
+app.use(userRouter.allowedMethods())
+
+app.listen(8000,()=>{
+    console.log("running in 8000 port...")
+})
+```
+
+#### 12.4 参数解析
+
+- params和query
+
+  > app.use可以拿到query 拿不到query 使用router.get可以获取到params
+
+  ```js
+  app.use((ctx,next)=>{
+    console.log(ctx.request.url)
+    console.log(ctx.request.query)
+    console.log(ctx.request.params) // undefined
+  })
+  
+  router.get('/:id',(ctx,next)=>{
+    console.log(ctx.request.query)
+    console.log(ctx.request.params)
+  })
+  ```
+
+- json和urlencoded
+
+  ```shell
+  npm i koa-bodyparser
+  npm i koa-multer
+  ```
+
+  ```js
+  const bodyParser = require("koa-bodyparser")
+  
+  
+  app.use(bodyParser())
+  
+  ```
+
+  ```js
+  const multer = require("koa-multer")
+  
+  const upload = multer()
+  
+  router.post("/",(ctx,next)=>{
+    ctx.response.body = "post request"
+    console.log(ctx.request.body)
+      next()
+  })
+  
+  router.post("/avatar",upload.any(),(ctx,next)=>{
+    ctx.response.body = "头像上传成功"
+      // **req**
+    console.log(ctx.req.body)
+  })
+  ```
+
+- 上传文件
+
+  ```js
+  const Router = require("koa-router")
+  const multer = require("koa-multer")
+  
+  const router = new Router({prefix:"/user"})
+  const upload = multer({
+    dest:'../uploads/'
+  })
+  
+  router.post("/avatar",upload.single("avatar"),(ctx,next)=>{
+    ctx.response.body = "头像上传成功"
+    console.log(ctx.req.file)
+  })
+  ```
+
+- 响应数据
+
+  - 输出结果`ctx.response.body` || `ctx.body`
+  - string
+    - Buffer
+  - Stream
+    - Object | Array
+    - null
+  - 请求状态`ctx.status` || `ctx.response.status`
+
+
+
+#### 12.5 静态服务器和错误处理
+
+- 静态服务器
+
+  ```shell
+  npm i koa-static
+  ```
+
+  ```js
+  const Koa = require('koa')
+  const static = require("koa-static")
+  
+  const app = new Koa()
+  
+  app.use(static('./build'))
+  
+  app.listen(8000,()=>{
+      console.log("启动成功")
+  })
+  ```
+
+- 错误处理
+
+  ```js
+  const Koa = require('koa')
+  
+  const app = new Koa()
+  
+  app.use((ctx,next)=>{
+      ctx.app.emit('error',new Error("info"),ctx)
+  })
+  
+  app.on("error",(err,ctx)=>{
+      console.log(err.message)
+      ctx.response.body = "error"
+  })
+  app.listen(8000,()=>{
+      console.log("启动成功")
+  })
+  ```
+
+### 13 node中使用mysql
+
+#### 13.1 Mysql2
+
+- 安装依赖
+
+  ```shell
+  npm install mysql2 
+  ```
+
+- 基本使用
+
+  ```js
+  const mysql = require("mysql2")
+  
+  // 创建数据库连接
+  const connection = mysql.createConnection({
+      host:"localhost",
+      database:"tc_demo",
+      user:"root",
+      password:"123"
+  })
+  
+  // 执行sql语句
+  const statement = `
+  	SELECT * FROM tc_book;
+  `
+  connection.query(statement,(err,result,fileds)=>{
+      console.log(result)
+      connection.end() // 查询终止 可以通过.on监听err信息
+      // connection.destory() // 强制停止 监听不到错误
+  })
+  ```
+
+- 预处理语句
+
+  - 特点
+
+    - 提高性能：将创建的语句模块发送给MySQL，然后MySQL编译（解析、优化、转换）语句模块，并且存储它但是不执行，之后我们在真正执行时会给?提供实际的参数才会执行；就算多次执行，也只会编译一次，所以性能是更高的；
+    - 防止SQL注入：之后传入的值不会像模块引擎那样就编译，那么一些SQL注入的内容不会被执行；or 1 = 1不会被执行；
+    - 如果再次执行该语句，它将会从LRU（Least Recently Used） Cache中获取，省略了编译statement的时间来提高性能。
+    - 内部先调用`prepare` 再调用`query`
+
+  - 语法
+
+    ```js
+    const statement = "select * from pro where price > ? and brand like ?;"
+    connection.execute(statement,["1000","sam"],(err,res)=>{
+        console.log(res)
+    })
+    ```
+
+- 连接池
+
+  > 连接池可以在需要的时候自动创建连接，并且创建的连接不会被销毁，会放到连接池中，后续可以继续使用；
+  >  在创建连接池的时候设置LIMIT，也就是最大创建个数；
+
+  ```js
+  const pool = mysql.cteatePool({
+      host:"localhost",
+      database:"",
+      user:"root",
+      password:"124",
+      connectionLimit:5
+  })
+  
+  pool.execute(statement,["1000","sam"],(err,res)=>{
+      console.log(res)
+  })
+  
+  //Promise方式
+  pool.promise().execute(statement,["1000","sam"]).then(([res,fileds])=>{
+      console.log(res)
+  })).catch(console.log)
+  ```
+
+#### 13.2 ORM - Sequelize
+
+>  对象关系映射（英语：Object Relational Mapping，简称ORM，或O/RM，或O/R mapping），是一种程序
+> 设计的方案：
+>
+> - 从效果上来讲，它提供了一个可在编程语言中，使用 虚拟对象数据库 的效果；
+> - 比如在Java开发中经常使用的ORM包括：Hibernate、MyBatis；
+
+
+
+### 14 项目实战
+
+#### 14.1 初始化
+
+```shell
+npm init -y
+npm install nodemon -D
+npm i dotenv
+```
+
+- 目录结构
+  - 按照功能模块
+  - 按照业务模块
+
+
+
+
+
+
 
 
 
