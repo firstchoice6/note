@@ -118,7 +118,7 @@ exports.foo = foo
 ```js
 const {name,foo} = require(./bar)
 
-conosle.log(name)
+console.log(name)
 
 foo()
 ```
@@ -294,7 +294,7 @@ module.exports = {
     - 模块环境记录会和变量进行 绑定（binding），并且这个绑定是实时的；
     - 在导入的地方，我们是可以实时的获取到绑定的最新值的；
 
-#### 3.5 node中的ESmodule
+#### 3.5 node中的ES-module
 
 - 一个js是一个commonjs的模块 斌不是es6的模块
 
@@ -362,7 +362,7 @@ path.isAbsolute()
 //返回true/false
 
 6. 拼接路径(..表示上层路径 .表示当前路径)
-path.join('/foo','bar','ba/sadsa','../../')
+path.join('/foo','bar','ba/foo','../../')
 // 返回'\foo\bar\'
 
 7. 规范化路径
@@ -494,7 +494,7 @@ path.resolve('wwwroot', 'static_files/png/', '../gif/image.gif')
     ```js
     const fs = require("fs")
     
-    const diranme
+    const dirname
     ```
 
   - 读取文件
@@ -558,7 +558,7 @@ path.resolve('wwwroot', 'static_files/png/', '../gif/image.gif')
 - node中的核心api都是异步事件驱动的
 
   - 某些对象(Emitters 发射器)发出某一个事件
-  - 监听事件(Listensers) 并且传入的回调函数 会在监听到时间的时候调用
+  - 监听事件(Listeners) 并且传入的回调函数 会在监听到时间的时候调用
 
 - 发出时间和监听事件都是通过`EventEmitter`类完成的 都属于`events`对象
 
@@ -597,10 +597,10 @@ path.resolve('wwwroot', 'static_files/png/', '../gif/image.gif')
   emitter.prependListener("click",event1)
   
   // 监听一次
-  emiitter.once("click",event1)
+  emitter.once("click",event1)
   
   // 移除所有
-  emitter.removeAllListeners([eventname]) // eventname可选
+  emitter.removeAllListeners([eventName]) // eventName可选
   ```
 
   
@@ -1572,7 +1572,7 @@ path.resolve('wwwroot', 'static_files/png/', '../gif/image.gif')
       打印:script start
       ```
 
-    - `settimeout0`加入time `setImmediate`加入immediate,`nextTick1`加入nexttick
+    - `settimeout0`加入time `setImmediate`加入immediate,`nextTick1`加入nextTick
 
       ```
       main script:
@@ -2563,10 +2563,10 @@ app.listen(8000,()=>{
   const statement = `
   	SELECT * FROM tc_book;
   `
-  connection.query(statement,(err,result,fileds)=>{
+  connection.query(statement,(err,result,fields)=>{
       console.log(result)
       connection.end() // 查询终止 可以通过.on监听err信息
-      // connection.destory() // 强制停止 监听不到错误
+      // connection.destroy() // 强制停止 监听不到错误
   })
   ```
 
@@ -2594,7 +2594,7 @@ app.listen(8000,()=>{
   >  在创建连接池的时候设置LIMIT，也就是最大创建个数；
 
   ```js
-  const pool = mysql.cteatePool({
+  const pool = mysql.createPool({
       host:"localhost",
       database:"",
       user:"root",
@@ -2607,7 +2607,7 @@ app.listen(8000,()=>{
   })
   
   //Promise方式
-  pool.promise().execute(statement,["1000","sam"]).then(([res,fileds])=>{
+  pool.promise().execute(statement,["1000","sam"]).then(([res,fields])=>{
       console.log(res)
   })).catch(console.log)
   ```
@@ -2744,6 +2744,24 @@ npm i jsonwebtoken
     	createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     	updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
     	);
+    	
+    -- 标签表
+    CREATE TABLE IF NOT EXISTS `t_label`(
+    	id INT PRIMARY KEY AUTO_INCREMENT,
+    	name VARCHAR(10) NOT NULL UNIQUE,
+    	createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    	updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    );
+    
+    
+    -- 标签动态对应表
+    CREATE TABLE IF NOT EXISTS `t_moment_label`(
+    	moment_id INT NOT NULL,
+    	label_id INT NOT NULL,
+    	createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    	updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    	PRIMARY KEY(moment_id, label_id) -- 联合主键
+    );
     ```
 
 - main.js
@@ -3191,13 +3209,13 @@ npm i jsonwebtoken
     const jwt = require("jsonwebtoken")
     
     // 定义密钥
-    const SERCURITY_KEY = "abc"
+    const SECURITY_KEY = "abc"
     
     
     Router.post("/test",(ctx,next)=>{
         // 设置token
         const user = {id:222,name:"john"}
-        const token = jwt.sign(user,SERCURITY_KEY,{
+        const token = jwt.sign(user,SECURITY_KEY,{
             expiresIn: 100 // 过期时间 单位秒
         })
         ctx.body = token
@@ -3207,7 +3225,7 @@ npm i jsonwebtoken
         // 获取token并验证
         const token = ctx.headers.authorization.replace("Bearer ","")
         try{
-    	    jwt.verify(token,SERCURITY_KEY)        
+    	    jwt.verify(token,SECURITY_KEY)        
         }catch(error){
             console.log("token无效")
         }
@@ -3390,15 +3408,17 @@ npm i jsonwebtoken
       const statement = `
       SELECT
         m.id id,
+        m.title title,
         m.content content,
         m.createAt createTime,
         m.updateAt updateTime,
-        JSON_OBJECT ( 'id', u.id, 'name', u.name ) user 
+        JSON_OBJECT ( 'id', u.id, 'name', u.NAME ) USER,
+        ( SELECT COUNT( * ) FROM ${table_name.TABLE_COMMENT} t WHERE t.moment_id = m.id ) commentCount 
       FROM
-        t_moment m
+        ${table_name.TABLE_MOMENT} m
         LEFT JOIN t_user u ON m.user_id = u.id 
-      WHERE
-        m.id = ?;`
+        LIMIT ?,?
+      `
       const [result] = await connection.execute(statement, [id])
       return result[0]
     }
@@ -3406,6 +3426,139 @@ npm i jsonwebtoken
   
   module.exports = new MomentService()
   ```
+
+#### 14.8 接口实例--评论
+
+- 重新封装验证权限以降低耦合
+
+  - service
+
+  ```js
+  class AuthService {
+    async verifyPermission({ tableName, id, userId }) {
+      const statement = `
+      SELECT * FROM ${tableName}
+      where id = ? and user_id = ?
+      `
+      const [result] = await connection.execute(statement, [parseInt(id), userId])
+      return result.length !== 0
+    }
+  }
+  ```
+
+  - controller
+
+  ```js
+  verifyPermission(tableName) {
+      return async function (ctx, next) {
+        const [id] = Object.values(ctx.params)
+        let result = await verifyPermission({ tableName, id, userId: ctx.user.id })
+        if (!result) {
+          const error = new Error(PERMISSION_DENIED)
+          ctx.app.emit("error", error, ctx)
+        } else {
+          await next()
+        }
+      }
+    }
+  ```
+
+- 获取动态和评论的两种方式
+
+  - 方式一:分别请求两个接口
+
+    ```js
+    async getCommentByPage({ momentId, page, pageSize }) {
+        const statement = `
+        SELECT
+          * 
+        FROM
+          ${TABLE_COMMENT} 
+        WHERE
+          moment_id = ?
+          LIMIT ?,?;
+        `
+        const [result] = await connection.execute(statement, [momentId, (page - 1) * pageSize, pageSize])
+    
+        return result
+      }
+    ```
+
+  - 方式二:一起请求 后端组装数据
+
+    ```mysql
+    SELECT
+          m.id id,
+          m.title title,
+          m.content content,
+          m.createAt createTime,
+          m.updateAt updateTime,
+          JSON_OBJECT ( 'id', u.id, 'name', u.name ) author,
+          JSON_ARRAYAGG( JSON_OBJECT('id',l.id,'name',l.name)) labels,
+          IF
+            (
+              COUNT(c.id),
+              JSON_ARRAYAGG (
+                JSON_OBJECT (
+                'id',c.id,
+                'content',c.content,
+                'commentId',c.comment_id,
+                'updateTime',c.createAt,
+                'user',JSON_OBJECT ( 'id', cu.id, 'name', cu.name ) 
+                ) 
+              ),
+              NULL
+            ) comments 
+        FROM
+          t_moment m
+          LEFT JOIN ${table_name.TABLE_USER} u ON m.user_id = u.id
+          LEFT JOIN ${table_name.TABLE_COMMENT} c ON c.moment_id = m.id
+          LEFT JOIN ${table_name.TABLE_USER} cu ON c.user_id = cu.id
+          LEFT JOIN ${table_name.TABLE_LABEL_MOMENT} ml ON m.id = ml.moment_id
+          LEFT JOIN ${table_name.TABLE_LABEL} l ON ml.label_id = l.id 
+        WHERE
+          m.id = ?
+        GROUP BY 
+          m.id
+    ```
+
+    ```json
+    {
+        "id": 11,
+        "title": "假如生活欺骗了你",
+        "content": "12123123123123",
+        "createTime": "2021-04-22T06:44:28.000Z",
+        "updateTime": "2021-04-22T06:45:04.000Z",
+        "author": {
+            "id": 2,
+            "name": "张三"
+        },
+        "comments": [
+            {
+                "id": 14,
+                "user": {
+                    "id": 12,
+                    "name": "zic"
+                },
+                "content": "火钳留名zic",
+                "commentId": null,
+                "updateTime": "2021-04-23 15:23:43.000000"
+            },
+            {
+                "id": 14,
+                "user": {
+                    "id": 12,
+                    "name": "zic"
+                },
+                "content": "火钳留名zic",
+                "commentId": null,
+                "updateTime": "2021-04-23 15:23:43.000000"
+            }
+        ]
+    }
+    ```
+
+  14.9 
 
   
 
