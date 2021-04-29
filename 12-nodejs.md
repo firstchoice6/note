@@ -2639,18 +2639,49 @@ npm i jimp
 - 目录结构
   - 按照功能模块
   
-    ```text
-    │  .env
-    │  main.js
+    ```js
+    │  .env  // 环境配置
+    │  .gitignore  // gitignore
+    │  coderhub.postman_collection.json  // postman导出文件
+    │  main.js  // 入口
     │  package-lock.json
     │  package.json
-    ├─node_modules
-    └─src
-        ├─app
-        │      config.js
-        │      index.js
-        ├─controller
-        └─service
+    │
+    ├─src
+    │  ├─app
+    │  │  │  config.js   //读取到的环境配置统一导出
+    │  │  │  db.js		// 数据库连接文件
+    │  │  │  error-handle.js  // 错误处理函数
+    │  │  │  index.js    // 创建koa实例
+    │  │  │
+    │  │  └─keys  // 私钥和公钥
+    │  │          private.key   
+    │  │          public.key
+    │  │
+    │  ├─constants
+    │  │      err-types.js  // 错误类型
+    │  │      file-path.js  // 文件路径
+    │  │      table-name.js // 表名
+    │  │
+    │  ├─controller // controll层
+    │  │
+    │  ├─middleware //中间件
+    │  │
+    │  ├─router // 路由
+    │  │      index.js
+    │  ├─service // service层
+    │  │
+    │  └─utils 
+    │          md5.js
+    │
+    └─uploads
+        ├─avatar
+        │
+        └─picture
+                4ffd158512c05883d43c1b5fc037c9fb
+                4ffd158512c05883d43c1b5fc037c9fb-large
+                4ffd158512c05883d43c1b5fc037c9fb-middle
+                4ffd158512c05883d43c1b5fc037c9fb-small
     ```
   
   - 按照业务模块
