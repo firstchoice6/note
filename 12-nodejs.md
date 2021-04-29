@@ -2632,6 +2632,8 @@ npm install nodemon -D
 npm i dotenv
 npm i koa-bodyparser
 npm i jsonwebtoken
+npm i koa-multer
+npm i jimp
 ```
 
 - 目录结构
@@ -2762,6 +2764,31 @@ npm i jsonwebtoken
     	updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     	PRIMARY KEY(moment_id, label_id) -- 联合主键
     );
+    
+    -- 头像信息表
+    CREATE TABLE IF NOT EXISTS `t_avatar` (
+    	id INT PRIMARY KEY auto_increment,
+    	filename VARCHAR ( 100 ) NOT NULL UNIQUE,
+    	mimetype VARCHAR ( 30 ),
+    	size INT,
+    	user_id INT,
+    	createAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    	updateAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
+    )
+    
+    -- 动态配图表
+    CREATE TABLE `t_file` (
+      `id` int NOT NULL AUTO_INCREMENT,
+      `filename` varchar(100) NOT NULL,
+      `mimetype` varchar(30) DEFAULT NULL,
+      `size` int DEFAULT NULL,
+      `user_id` int DEFAULT NULL,
+      `moment_id` int DEFAULT NULL,
+      `createAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+      `updateAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `filename` (`filename`)
+    )
     ```
 
 - main.js
@@ -3494,34 +3521,45 @@ npm i jsonwebtoken
           m.createAt createTime,
           m.updateAt updateTime,
           JSON_OBJECT ( 'id', u.id, 'name', u.name ) author,
-          JSON_ARRAYAGG( JSON_OBJECT('id',l.id,'name',l.name)) labels,
-          IF
-            (
-              COUNT(c.id),
-              JSON_ARRAYAGG (
-                JSON_OBJECT (
-                'id',c.id,
-                'content',c.content,
-                'commentId',c.comment_id,
-                'updateTime',c.createAt,
-                'user',JSON_OBJECT ( 'id', cu.id, 'name', cu.name ) 
-                ) 
-              ),
-              NULL
-            ) comments 
+        IF
+          (
+          COUNT( l.id ),
+          JSON_ARRAYAGG ( JSON_OBJECT ( 'id', l.id, 'name', l.name ) ),
+        NULL 
+          ) labels,
+          (
+        SELECT
+        IF
+          (
+            COUNT( c.id ),
+            JSON_ARRAYAGG (
+              JSON_OBJECT (
+              'id',c.id,
+              'content',c.content,
+              'commentId',c.comment_id,
+              'updateTime',c.createAt,
+              'user',JSON_OBJECT ( 'id', cu.id, 'name', cu.name ) 
+              ) 
+            ),
+            NULL 
+          ) 
         FROM
-          t_moment m
-          LEFT JOIN ${table_name.TABLE_USER} u ON m.user_id = u.id
-          LEFT JOIN ${table_name.TABLE_COMMENT} c ON c.moment_id = m.id
-          LEFT JOIN ${table_name.TABLE_USER} cu ON c.user_id = cu.id
-          LEFT JOIN ${table_name.TABLE_LABEL_MOMENT} ml ON m.id = ml.moment_id
-          LEFT JOIN ${table_name.TABLE_LABEL} l ON ml.label_id = l.id 
+          ${ table_name.TABLE_COMMENT } c
+          LEFT JOIN ${ table_name.TABLE_USER } cu ON c.user_id = cu.id 
         WHERE
-          m.id = ?
-        GROUP BY 
+          c.moment_id = m.id 
+      ) comments 
+        FROM
+          ${ table_name.TABLE_MOMENT } m
+          LEFT JOIN ${ table_name.TABLE_USER } u ON m.user_id = u.id
+          LEFT JOIN ${ table_name.TABLE_LABEL_MOMENT } ml ON m.id = ml.moment_id
+          LEFT JOIN ${ table_name.TABLE_LABEL } l ON ml.label_id = l.id 
+        WHERE
+          m.id = ? 
+        GROUP BY
           m.id
     ```
-
+    
     ```json
     {
         "id": 11,
@@ -3546,9 +3584,9 @@ npm i jsonwebtoken
             },
             {
                 "id": 14,
-                "user": {
+              "user": {
                     "id": 12,
-                    "name": "zic"
+                  "name": "zic"
                 },
                 "content": "火钳留名zic",
                 "commentId": null,
@@ -3558,9 +3596,296 @@ npm i jsonwebtoken
     }
     ```
 
-  14.9 
+#### 14.9 接口实例--标签
+
+- router
+
+  ```js
+  const Router = require("koa-router")
+  const { createLabel,getAllLabel } = require("../controller/label.controller")
+  const { verifyAuth } = require("../middleware/auth.middleware")
+  
+  const labelRouter = new Router({ prefix: "/label" })
+  
+  labelRouter.post('/', verifyAuth, createLabel)
+  labelRouter.get('/', verifyAuth, getAllLabel)
+  
+  module.exports = labelRouter
+  ```
+
+- controller
+
+  ```js
+  const { LABEL_ALREADY_EXISTS } = require("../constants/err-types")
+  const { createLabel, getAllLabel } = require("../service/label.service")
+  
+  class labelController {
+    async createLabel(ctx, next) {
+  
+      const { name } = ctx.request.body
+      let flag = await createLabel(name)
+      if (flag) {
+        ctx.body = "success"
+      } else {
+        const err = new Error(LABEL_ALREADY_EXISTS)
+        ctx.app.emit("error", err, ctx)
+      }
+    }
+    async getAllLabel(ctx, next) {
+      const { page, pageSize } = ctx.query
+      const result = await getAllLabel({ page: parseInt(page), pageSize: parseInt(pageSize) })
+      ctx.body = result
+    }
+  }
+  
+  module.exports = new labelController()
+  ```
 
   
+
+- service
+
+  ```js
+  const connection = require("../app/db")
+  const { TABLE_LABEL } = require("../constants/table-name")
+  
+  class labelService {
+    async createLabel(name) {
+      try {
+        const statement = `
+        INSERT INTO ${TABLE_LABEL} ( name ) VALUES ( ? );
+        `
+        let [result] = await connection.execute(statement, [name])
+        return result
+      } catch (error) {
+        return false
+      }
+  
+    }
+    async getLabelByName(name) {
+  
+      const statement = `
+        SELECT
+          * 
+        FROM
+          ${TABLE_LABEL} 
+        WHERE
+          NAME = ?
+        `
+      const [result] = await connection.execute(statement, [name])
+      return result[0]
+    }
+  
+    async getAllLabel({ page, pageSize }) {
+      const statement = `
+      SELECT name FROM ${TABLE_LABEL} LIMIT ?,?;
+      `
+      let [result] = await connection.execute(statement, [(page - 1) * pageSize, pageSize])
+      return result
+    }
+  }
+  
+  module.exports = new labelService()
+  ```
+
+  
+
+- middleware
+
+  ```js
+  const { getLabelByName, createLabel } = require("../service/label.service")
+  
+  const verifyLabel = async (ctx, next) => {
+    const { labels } = ctx.request.body
+    const labelList = []
+    for (const name of labels) {
+      let labelResult = await getLabelByName(name)
+      if (labelResult) {
+        labelList.push({ id: labelResult.id, name })
+      } else {
+        let result = await createLabel(name)
+        labelList.push({ id: result.insertId, name })
+      }
+    }
+    ctx.labels = labelList
+    await next()
+  }
+  
+  module.exports = { verifyLabel }
+  ```
+
+  
+
+#### 14.10 接口实例--上传文件
+
+- 上传头像逻辑
+
+  - 定义上传图像的接口
+  - 定义获取图像的接口
+  - 请求用户信息时,获取头像
+
+- router
+
+  ```js
+  const Router = require("koa-router")
+  const { avatarHandler } = require("../middleware/file.middleware")
+  const { verifyAuth } = require("../middleware/auth.middleware")
+  const { saveAvatarInfo } = require("../controller/file.controller")
+  
+  const fileRouter = new Router({ prefix: "/upload" })
+  
+  fileRouter.post('/avatar', verifyAuth, avatarHandler,saveAvatarInfo)
+  
+  module.exports = fileRouter
+  
+  ```
+
+- middleware
+
+  ```js
+  const Multer = require("koa-multer")
+  const { AVATAR_PATH } = require("../constants/file-path")
+  
+  const avatarUpload = Multer({
+    dest: AVATAR_PATH
+  })
+  
+  const avatarHandler = avatarUpload.single('avatar')
+  
+  module.exports = {
+    avatarHandler
+  }
+  ```
+
+- controller
+
+  ```js
+  const { createAvatarInfo } = require("../service/file.service")
+  const { addAvatarUrl } = require("../service/user.service")
+  const { APP_HOST, APP_PORT } = require("../app/config")
+  
+  class fileController {
+    async saveAvatarInfo(ctx, next) {
+      // 获取相关信息
+      const { mimetype, filename, size } = ctx.req.file
+      const { id } = ctx.user
+      // 保存图像信息
+      const result = await createAvatarInfo({ mimetype, filename, size, user_id: id })
+      // 保存avatar_url到用户表
+      const avatarUrl = `${APP_HOST}:${APP_PORT}/users/${id}/avatar`
+      await addAvatarUrl({ user_id: id, url: avatarUrl })
+      ctx.body = "上传成功"
+    }
+  }
+  
+  module.exports = new fileController()
+  ```
+
+- user.controller
+
+  ```js
+   async avatarInfo(ctx, next) {
+      const { userId } = ctx.params
+      const { filename, mimetype } = await getAvatarInfoById(userId)
+      ctx.response.set("content-type", mimetype)
+      ctx.body = fs.createReadStream(`${AVATAR_PATH}/${filename}`)
+    }
+  ```
+
+  
+
+- 上传动态配图
+
+  - 定义上传动态配图的接口
+  - 定义获取动态配图的接口
+  - 获取动态时,获取配图信息
+
+- router
+
+  ```js
+  fileRouter.post("/picture", verifyAuth, pictureHandler, pictureResize, savePictureInfo)
+  ```
+
+- middleware
+
+  ```js
+  const pictureHandler = pictureUpload.array('picture', 9)
+  
+  const pictureResize = async (ctx, next) => {
+    // 获取所有图像信息
+    const { files } = ctx.req
+    // 处理(sharp/jimp)
+    for (const file of files) {
+      const destPath = path.join(file.destination, file.filename)
+      jimp.read(file.path).then(image => {
+        image.resize(1280, jimp.AUTO).write(`${destPath}-large`)
+        image.resize(640, jimp.AUTO).write(`${destPath}-middle`)
+        image.resize(320, jimp.AUTO).write(`${destPath}-small`)
+      })
+    }
+    await next()
+  }
+  ```
+
+- controller
+
+  ```js
+  async savePictureInfo(ctx, next) {
+      const files = ctx.req.files
+      const { id } = ctx.user
+      const { momentId } = ctx.query
+      for (const file of files) {
+        const { mimetype, filename, size } = file
+        await createPictureInfo({ mimetype, filename, size, user_id: id, momentId })
+      }
+      ctx.body = "success"
+    }
+  ```
+
+- 根据文件名查找图片
+
+  ```js
+  momentRouter.get("/images/:filename", fileInfo)
+  
+  
+  async fileInfo(ctx, next) {
+      let { filename } = ctx.params
+      const fileInfo = await getFileInfo(filename)
+      const { type } = ctx.query
+      const types = ['large', 'small', 'middle']
+      if (types.some(i => i === type)) {
+        filename = filename + '-' + type
+      }
+  
+      ctx.response.set('content-type', fileInfo.mimetype)
+      ctx.body = fs.createReadStream(`${PICTURE_PATH}/${filename}`)
+    }
+  
+  
+  async getFileInfo(filename) {
+      const statement = `
+      SELECT * FROM ${TABLE_FILE} WHERE filename = ?
+      `
+      const [result] = await connection.execute(statement, [filename])
+      return result[0]
+    }
+  ```
+
+
+
+### 15 附件 POSTMAN测试导出文件
+
+[github地址]: https://github.com/firstchoice6/coderhub/blob/master/coderhub.postman_collection.json
+
+
+
+
+
+
+
+
+
+
 
 
 
