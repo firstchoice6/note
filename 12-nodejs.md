@@ -3904,11 +3904,7 @@ npm i jimp
 
 ### 15 附件 POSTMAN测试导出文件
 
-<<<<<<< HEAD
-[github地址]: https://github.com/firstchoice6/coderhub/blob/master/coderhub.postman_collection.json 。
-=======
 [github地址]: https://github.com/firstchoice6/coderhub/blob/master/coderhub.postman_collection.json 地址
->>>>>>> 10fb614664209645119740a0a04ff3bcb1f36535
 
 
 
