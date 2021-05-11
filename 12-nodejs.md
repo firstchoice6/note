@@ -1409,52 +1409,50 @@ path.resolve('wwwroot', 'static_files/png/', '../gif/image.gif')
        已打印:pro1 2 
        ```
 
-       
-
     7.  执行微任务 打印`then1 queueMicrotask1 then3`
 
        ```text
-       宏:set1 set2
+   宏:set1 set2
        微:
        已打印:pro1 2 then1 queueMicrotask1 then3
        ```
-
+    
     8. 执行宏任务set1,打印`set1` `then2`加入微任务队列
 
        ```text
-       宏:set2
+   宏:set2
        微:then2
        已打印:pro1 2 then1 queueMicrotask1 then3 set1
        ```
-
+    
        
 
     9. 执行微任务then2 打印then2 `then4`加入微任务队列
 
        ```text
-       宏:set2
+   宏:set2
        微:then4
        已打印:pro1 2 then1 queueMicrotask1 then3 set1 then2 
        ```
-
+    
     10. 执行微任务 打印then4
 
         ```text
-        宏:set2
+    宏:set2
         微:
         已打印:pro1 2 then1 queueMicrotask1 then3 set1 then2 then4
         ```
-
+    
         
 
     11. 执行set2 打印`set2`
 
         ```text
-        宏:
+    宏:
         微:
         已打印:pro1 2 then1 queueMicrotask1 then3 set1 then2 then4 set2
         ```
-
+  
 - node架构
 
 - 阻塞IO和非阻塞IO
@@ -3906,7 +3904,11 @@ npm i jimp
 
 ### 15 附件 POSTMAN测试导出文件
 
+<<<<<<< HEAD
 [github地址]: https://github.com/firstchoice6/coderhub/blob/master/coderhub.postman_collection.json 。
+=======
+[github地址]: https://github.com/firstchoice6/coderhub/blob/master/coderhub.postman_collection.json 地址
+>>>>>>> 10fb614664209645119740a0a04ff3bcb1f36535
 
 
 
