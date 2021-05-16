@@ -1241,6 +1241,68 @@ FROM
      	CROSS JOIN table_b b;
      ```
 
+- 七种常见子连接
+
+  ```mysql
+  -- A∪(A∩B)
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	LEFT JOIN b ON a.KEY = b.KEY;
+  	
+  -- B∪(A∩B)
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	RIGHT JOIN b ON a.KEY = b.KEY; 
+  	
+  -- 交集
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	INNER JOIN b ON a.KEY = b.KEY; 
+  	
+  -- 差集(A)
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	LEFT JOIN b ON a.KEY = b.KEY; 
+  WHERE
+  	b.KEY IS NULL;
+      
+  -- 差集(B)
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	RIGHT JOIN b ON a.KEY = b.KEY 
+  WHERE
+  	a.KEY IS NULL; 
+  	
+  -- 并集
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	FULL OUTER JOIN b ON a.KEY = b.KEY; 
+  	
+  -- 对称差
+  SELECT
+  	< select_list > 
+  FROM
+  	a
+  	FULL OUTER JOIN b ON a.KEY = b.KEY 
+  WHERE
+  	a.KEY IS NULL 
+  	OR b.KEY IS NULL;
+  ```
+
+  
+
 ### 4.8 子查询
 
 - 含义:
