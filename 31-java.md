@@ -1904,7 +1904,7 @@ class Student{
           // 创建的时一个运行时异常
           throw new ArithmeticException("age不能小于0");
       }else{
-          System.oou.println(age)
+          System.out.println(age);
       }
   }
   ```

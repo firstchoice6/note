@@ -2503,3 +2503,148 @@ CALL `check`( 'join', '123' ); -- check是关键字 加``
     ```
 
   - 特点:先执行后判断
+
+## 12 SQL优化
+
+### 12.1 索引
+
+- 定义：索引`index`是帮助mysql高校获取数据的数据结构
+- BTREE (balance tree) 多路平衡查找树
+- 索引类型
+  - 单值索引
+    - 只包含单个列 一个表可以有多个单列索引
+  - 唯一索引
+    - 索引列的值必须唯一 但允许有空值
+  - 复合索引
+    - 一个索引包含多个列
+
+- 语法
+
+  ```mysql
+  ALTER TABLE `table_name` ADD UNIQUE INDEX `index_name` ( 'id', 'className', 'classNo' ) USING BTREE
+  ```
+
+### 12.2 `EXPLAIN`
+
+- 作用: 使用`EXPLAIN`关键字可以模拟优化器执行sql查询语句 从而知道mysql是如何处理sql语句的 分析查询语句或是表结构的性能瓶颈
+
+  - 表的读取顺序
+  - 数据读取操作的操作类型
+  - 哪些索引可以使用
+  - 哪些索引实际使用
+  - 表之间的引用
+  - 每张表有多少行被优化器查询
+
+- 语法
+
+  ```mysql
+  explain sql语句
+  ```
+
+  
+
+- 参数含义
+
+  1. id
+
+     - `select`查询的序列号
+     - id越大越早执行 id一样 按照顺序从前到后
+
+  2. select_type
+
+     > 本次查询所用到的索引类型 没有用到索引为`all`
+
+     1. `simple`
+        - 简单的select查询 不包含子查询或者union
+     2. `primary`
+     3. `subquery`
+     4. `derived` (衍生的)
+     5. `union`
+        - 若第二个`select`出现在`union`之后 则被标记为`union`
+        - 若`union`包含在from子句的子查询中,外层select被标记为`derived`
+     6. `union result`
+        - 从union表获取结果的`select` 没有id
+
+  3. table
+
+  4. type
+
+     > 显示查询使用了何种类型 从好到差依次为
+     >
+     > 一般来说 要至少达到range级别
+
+     1. `system`
+        - 系统参数
+     2. `const`
+        - 常量 (`where id = ?`)
+     3. `eq_ref`
+        - 唯一性索引扫描
+        - 一对一
+        - 常见于主键
+     4. `ref`
+        - 非唯一性索引
+        - 本质上也是索引访问
+        - 属于查找和扫描的混合体
+     5. `range`
+     6. `index`
+        - full index scan 遍历全索引
+     7. `all`
+        - full table scan全表遍历
+
+  5. possible_keys
+
+     - 多表联查时 可能应用的索引 一个或多个
+     - 查询设计到的字段 上若存在该索引 会被列出 但不一定被时机查询使用
+
+  6. key
+
+     - 多表联查时 实际使用的索引 为null 则没有索引
+     - 若使用覆盖查询 该索引和查询的sekect字段重叠
+
+  7. key_len
+
+     - 多表联查时 使用的索引的字节数 
+     - 可通过该列计算查询中使用的索引的长度
+     - 长度越短越好
+     - 最大可能长度,并非实际使用长度
+
+  8. ref
+
+     - 联合查询过程中所关联的索引字段是什么
+
+  9. rows
+
+     - 根据表统计信息 大致估算出找到所需的记录需要读取的行数
+
+  10. extra
+
+      > 包括不适合在其他列展示的信息
+
+      1. ~~using filesort(文件内排序)~~
+      2. ~~using tempoary~~
+      3. using index
+      4. using where
+      5. using join buffer
+      6. impossible where
+
+### 12.3 索引失效
+
+> 全职匹配我最爱 最左前缀要遵守
+>
+> 带头大哥不能死 中间兄弟不能断
+>
+> 索引列上少计算 范围之后全失效
+>
+> LIKE百分写最右 覆盖索引不写*
+>
+> 不等空值还有OR 索引影响要注意
+>
+> VAR引号不可丢 SQL优化有诀窍
+
+- 全职匹配我最爱
+
+  > 如果索引了多项 那么查询条件越多效率越高 (ref优先级>key_len)
+
+- 最左前缀要遵守
+
+  > 如果索引了多项 查询从索引的最左前列开始并不跳过索引中的列

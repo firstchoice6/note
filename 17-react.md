@@ -910,7 +910,6 @@ class App extends PureComponent{
   // setState底层实现了数据合并 
   Object.assign({},this.state,{msg:"hello world"})
   
-  
   // 多次setState会在内部合并
   this.setState({count:this.state.count ++})
   this.setState({count:this.state.count ++})
@@ -937,7 +936,7 @@ class App extends PureComponent{
   })
   // 最终结果 + 3
   ```
-
+  
 - setState不可变的力量
 
   
@@ -4039,6 +4038,112 @@ function useMyHook(name){
       retunr [data,setData]
   }
   ```
+
+### 9.7 hooks的原理（useState为例）
+
+- Fiber
+
+  > GUI的渲染和js代码的执行在同一个线程 是互斥的
+  > 用户事件的响应 键盘事件响应 js代码执行 raf layout paint 其他号是操作
+  >
+  > 把一个耗时长的任务分成很多小片，每一个小片的运行时间很短，虽然总时间依然很长，但是在每个小片执行完之后，都给其他任务一个执行的机会，这样唯一的线程就不会被独占，其他任务依然有运行的机会。
+  >
+  > React Fiber把更新过程碎片化，执行过程如下面的图所示，每执行完一段更新过程，就把控制权交还给React负责任务协调的模块，看看有没有其他紧急任务要做，如果没有就继续去更新，如果有紧急任务，那就去做紧急任务。
+  >
+  > 维护每一个分片的数据结构，就是Fiber。
+  >
+  > 有了分片之后，更新过程的调用栈如下图所示，中间每一个波谷代表深入某个分片的执行过程，每个波峰就是一个分片执行结束交还控制权的时机。
+
+[fiber详解]: https://developer.aliyun.com/article/782946
+
+- hooks原理
+
+## 10 项目实战
+
+### 10.1 初始化项目
+
+- 创建项目
+
+  ```shell
+  ## 这种方式已弃用
+  create-react-app fc-music-react
+  
+  
+  ## 使用这种方式
+  npm init react-app fc-music-react
+  ```
+
+- 目录结构
+
+  ```shell
+  ├─assets
+  │  ├─css
+  │  └─img
+  ├─common
+  ├─components
+  ├─network
+  ├─pages
+  ├─router
+  ├─store
+  ├─util
+  ├─App.js
+  └─index.js
+  ```
+
+- 初始化css
+
+  ```shell
+  npm install normalize.css
+  ```
+
+  ```css
+  @import '~antd/dist/antd.css';
+  @import "~normalize.css";
+  
+  /* 自己的样式的重置 */
+  body, html, h1, h2, h3, h4, h5, h6, ul, ol, li, dl, dt, dd, header, menu, section, p, input, td, th, ins {
+    padding: 0;
+    margin: 0;
+  }
+  /*剩余省略*/
+  ```
+
+- 配置别名
+
+  > 使用craco可以在不暴露webpack配置的情况下修改webpack配置
+
+  ```shell
+  npm i @craco/craco
+  ```
+
+  - package.json
+
+  ```json
+  "scripts": {
+      "start": "craco start",
+      "build": "craco build",
+      "test": "craco test",
+      "eject": "react-scripts eject"
+    },
+  ```
+
+  - craco.config.js
+
+  ```js
+  const path = require("path")
+  
+  const resolve = dir => path.resolve(__dirname,dir)
+  
+  module.exports = {
+    webpack:{
+      alias:{
+        "@":resolve("src")
+      }
+    }
+  }
+  ```
+
+  
 
   
 
