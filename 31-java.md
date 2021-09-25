@@ -2077,7 +2077,7 @@ class Student{
 
 - 说明
 
-  - `String`被`final`修饰
+  - `String`被`final`修饰,不能被继承
 
   - 实现了`Serializable`接口
 
@@ -2090,6 +2090,8 @@ class Student{
   - 实现了`CharSequence`接口
 
     > 可以用来获取字符串长度 字符串中的某个字符
+    >
+    > - jdk9以后由char[]变成了byte[]
 
   - 字符串在底层是通过`char`类型的数组实现的
 
@@ -2198,9 +2200,49 @@ class Student{
 ### 5.3 StringBuffer 和StringBuilder
 
 - 说明
-  - `StringBuffer `可变的字符序列 线程安全 效率低
-  - `StringBuilder`可变的字符序列 线程不安全 效率高
+  
+  - `String`不可变的字符序列
 
+    - 初始容量0
+  
+    - 无参
+  
+      > `new String()`
+      >
+      > 相当于`new char[0]`
+  
+    - 有参
+  
+      > `String a = new String("abc")`
+      >
+      > 相当于`new char[]{'a','b','c'}`
+  
+  - `StringBuffer `可变的字符序列 线程安全 效率低
+  
+    - 初始容量16
+  
+    - 无参
+  
+      > `StringBuffer sb = new StringBuffer()`
+      >
+      > 相当于`new char[16]`
+      >
+      > `sb.length()` **重写了length方法 返回0**
+  
+    - 有参
+  
+      > `String BUffer sb = new StringBuffer("abc")`
+      >
+      > 相当于`new char["abc".length() + 16]`
+  
+    - 扩容
+  
+      > 底层使用`value.length()<<1 + 2`左移运算
+      >
+      > 默认扩容到原来的2倍+2 同时复制原有数据
+  
+  - `StringBuilder`可变的字符序列 线程不安全 效率高
+  
 - `API`
 
   ```java
@@ -2258,7 +2300,7 @@ class Student{
 
   `StringBuilder` > `StringBuffer` > `String`
 
-### 5.4 Date类
+### 5.4 ~~Date类~~
 
 - `java.lang.System`
 
@@ -2280,8 +2322,6 @@ class Student{
   // 输出日期和时间 直接输出 默认调用的就是toString()方法
   toString();
   ```
-
-  
 
 - `java.sql.Date`
 
@@ -2311,8 +2351,8 @@ SimpleDateFormat sdf = new SimpleDateFormat();
   // 将日期转化为String
   sdf.format(new Date()); // 20-8-31 上午10:08
   
-  SimpleDateFormat stf2 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-  sdf2.format(new Date()); // 2020-08-31T22:23:46.845+0800
+  SimpleDateFormat stf2 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+  sdf2.format(new Date()); // 2020-08-31T22:23:46.845Z
   // 字符串转时间
   parse(String name);
   ```
@@ -2337,115 +2377,121 @@ SimpleDateFormat sdf = new SimpleDateFormat();
   Date date = instance.getTime();
   ```
 
-- **JDK8中新API**
 
-  - `now()`静态方法 根据当前时间创建对象/指定时区的对象
 
-      ```java
-      LocalDate date = LocalDate.now();
-// 2020-08-31
-      
-      LocalTime time = LocalTime.now();
-    // 22:55:23.233
-      
-    LocalDateTime dateTime = LocalDateTime.now();
-      // 2020-08-31T22:55:23.233
-    ```
-  
-  - `of()` 根据参数构建日期对象
-  
-    ```java
-    LocalDate date = LocalDate.of(2020,08,31);
-    
-    LocalTime time = LocalTime.of();
-    
-    LocalDateTime dateTime = LocalDateTime.of();
-    ```
-  
-  - 获取当天是当月的第几天...
-  
-    ```java
-    date.getDayOfMonth();
-    ...
-    ```
-  
-  - ....
-- Instant类
-    ```java
-    // 获取的是utc时间
-      Instant instant = Instant.now();
-    // 结合时间的偏移获取时间
-      instant.atOffset(ZoneOffset.ofHours(8));
+### 5.5 JDK8中新API
 
-    // 时间戳 1970到现在的毫秒数
-      instant.toEpochMilli();
-    
-    // 根据毫秒数获取对应的时间
-    Instant.ofEpochMilli(1553123123);
-    ```
+#### 5.5.1 LocalDate类
 
-- DateTimeFormatter类
+- 当前时间
 
-  ```java
-  // 预定义格式
-  DateTimeFormatter dtf = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-  // 将时间转化为字符串
-  dtf.format(LocalDateTime.now()); // 2020-09-01T07:09:23.232
-  // 其他格式
-  DateTimeFormatter dtf2 = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG);
-  
-  dtf2.format(LocalDateTime.now()); // 2020年9月1日上午07点12分12秒
-  
-  // 自定义格式
-  DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
-  // 字符串转时间
-  dtf.parse("2020-09-01T07:09:23.232")
-  ```
-| 方法                                                     | 描述                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| now() /  now(ZoneId zone)                         | 静态方法，根据当前时间创建对象/指定时区的对象                |
-| of()                                                     | 静态方法，根据指定日期/时间创建对象                          |
-| getDayOfMonth()/getDayOfYear()                               | 获得月份天数(1-31) /获得年份天数(1-366)                      |
-| getDayOfWeek()                                       | 获得星期几(返回一个  DayOfWeek 枚举值)                       |
-| getMonth()                                               | 获得月份, 返回一个  Month 枚举值                             |
-| getMonthValue() / getYear()                          | 获得月份(1-12) /获得年份                                     |
-| getHours()/getMinute()/getSecond()                       | 获得当前对象对应的小时、分钟、秒                             |
-| withDayOfMonth()/withDayOfYear()/  withMonth()/withYear() | 将月份天数、年份天数、月份、年份修改为指定的值并返回新的对象 |
-| with(TemporalAdjuster t)                | 将当前日期时间设置为校对器指定的日期时间                     |
-| plusDays(), plusWeeks(),   plusMonths(), plusYears(),plusHours() | 向当前对象添加几天、几周、几个月、几年、几小时               |
-| minusMonths() / minusWeeks()/  minusDays()/minusYears()/minusHours() | 从当前对象减去几月、几周、几天、几年、几小时                 |
-| plus(TemporalAmount t)  /minus(TemporalAmount t) | 添加或减少一个 Duration 或 Period                            |
-| isBefore()/isAfter()                                     | 比较两个 LocalDate                                           |
-| isLeapYear()                                             | 判断是否是闰年（在LocalDate类中声明）                        |
-| format(DateTimeFormatter t)                     | 格式化本地日期、时间，返回一个字符串                         |
-| parse(Charsequence text,DateTimeFormatter t) | 将指定格式的字符串解析为日期、时间                           |
+```java
+ LocalDate now = LocalDate.now();
+System.out.println(now);
+LocalTime time = LocalTime.now();
+System.out.println(time);
+LocalDateTime localDateTime = LocalDateTime.now();
+System.out.println(localDateTime);
 
-- Optional类 -> 解决空指针
+// 2021-09-11
+// 12:53:38.859
+// 2021-09-11T12:53:38.859
+```
 
-  ```java
-  // 创建一个空的Optional对象
-  Optional empty = Optional.empty();
-  // 第二种创建方式
-  Optional of = Optional.of("aa");
-  // 第三种创建方式
-  Optional.ofNullable("aaa");
-  
-  String str = null;
-  Optional ofNullable = Optional.ofNullable(str);
-  // 判断数据是否不为空 用ofNullable 用of会抛出异常
-  if(ofNullable.isPresent()){
-      print("数据不是空的");
-  }
-  
-  //获取容器中的数据
-  Object obj = ofNullable.get();
-  // 将容器中的null转化为ccc
-  Object obj2 = ofNullable.orElse("ccc");
-  ```
+- 指定时间
+
+```java
+LocalDateTime of = LocalDateTime.of(2021, 4, 23, 12, 12, 12); // 没有偏移
+```
+
+- 获取
+
+```java
+int dayOfMonth = time.getDayOfMonth();
+DayOfWeek dayOfWeek = time.getDayOfWeek();
+int dayOfYear = time.getDayOfYear();
+int hour = time.getHour();
+int minute = time.getMinute();
+int nano = time.getNano();
+```
+
+- 设置
+
+```java
+LocalDateTime time1 = time.withHour(1).withMinute(2).withDayOfMonth(1).withMonth(1).withNano(1);
+// 不可变性 time1 和time 是两个对象
+
+// 加
+time.plusDays(1);
+// 减
+time.minusDays(1);
+```
 
 
 
-### 5.5 Math类
+#### 5.5.2 Instance 类
+
+```java
+
+Instant instant = Instant.now();
+// 获取的是utc时间  2021-09-11T07:49:38.757Z
+
+instant.atOffset(ZoneOffset.ofHours(8));
+// 结合时间的偏移获取时间  2021-09-11T15:57:38.193+08:00
+
+instant.toEpochMilli();
+// 时间戳 1970到现在的毫秒数
+
+Instant.ofEpochMilli(1553123123);
+// 根据毫秒数获取对应的时间 1970-01-18T23:25:23.123Z
+```
+
+#### 5.5.3 DateTimeFormatter类
+
+```java
+// 预定义格式
+DateTimeFormatter dtf = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+DateTimeFormatter.ofPattern("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
+
+// 将时间转化为字符串
+dtf.format(LocalDateTime.now()); // 2020-09-01T07:09:23.232
+// 其他格式
+DateTimeFormatter dtf2 = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG);
+
+dtf2.format(LocalDateTime.now()); // 2020年9月1日上午07点12分12秒
+
+// 自定义格式
+DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
+// 字符串转时间
+dtf.parse("2020-09-01T07:09:23.232")
+```
+
+#### 5.5.4 Optional类 
+
+> 解决空指针
+
+```java
+// 创建一个空的Optional对象
+Optional empty = Optional.empty();
+// 第二种创建方式
+Optional of = Optional.of("aa");
+// 第三种创建方式
+Optional.ofNullable("aaa");
+
+String str = null;
+Optional ofNullable = Optional.ofNullable(str);
+// 判断数据是否不为空 用ofNullable 用of会抛出异常
+if(ofNullable.isPresent()){
+    print("数据不是空的");
+}
+
+//获取容器中的数据
+Object obj = ofNullable.get();
+// 将容器中的null转化为ccc
+Object obj2 = ofNullable.orElse("ccc");
+```
+
+### 5.6 Math类
 
 | 方法                       | 描述                                  |
 | -------------------------- | ------------------------------------- |
@@ -2462,7 +2508,7 @@ SimpleDateFormat sdf = new SimpleDateFormat();
 | toDegrees(double angrad)   | 弧度—>角度                            |
 | toRadians(double angdeg)   | 角度—>弧度                            |
 
-### 5.6 BigInteger 类 BigDecimal类
+### 5.7 BigInteger 类 BigDecimal类
 
 > Integer类作为int的包装类，能存储的最大整型值为2^31-1，BigInteger类的数值范围较Integer类、Long类的数值范围要大得多，可以支持任意精度的整数。
 
@@ -2485,6 +2531,95 @@ SimpleDateFormat sdf = new SimpleDateFormat();
   
   ```
 
+### 5.8 java比较器
+
+> 正常情况下 对象只能进行比较 == != 不能>或者 <
+>
+> 需要的时候需要通过两个接口实现 
+
+#### 5.8.1 Comparable
+
+```java
+class CompareTest implements Comparable<CompareTest>{
+    private double price;
+     @Override
+    public int compareTo(CompareTest that) {
+        return this.price - that.price;
+        // 大于返回正整数
+        // 小于返回负整数
+        // 等于返回0
+    }
+    
+    public static void main(String[] args) {
+        ArrayList<MyDraw> list = new ArrayList<>();
+     	// 逆序
+        list.sort(Comparator.reverseOrder());
+        // 正序
+        list.sort(Comparator.naturalOrder());
+    }
+}
+
+
+```
+
+#### 5.8.2 comparator
+
+```java
+String[] arr = new String[]{"AA","BB","CC"};
+Arrays.sort(arr, new Comparator<String>() {
+    @Override
+    public int compare(String o1, String o2) {
+        return -o1.compareTo(o2);
+    }
+});
+
+// lambda    
+String[] arr = new String[]{"AA","BB","CC"};
+Arrays.sort(arr, (o1, o2) -> -o1.compareTo(o2));
+```
+
+### 5.9 System类
+
+- 属性
+
+|                      |  |                                    |
+| -------------------- | ---------|------------------------------- |
+| `static PrintStream` | `err`| The "standard" error output stream. |
+| `static InputStream` | `in`|The "standard" input stream.         |
+| `static PrintStream` | `out`|The "standard" output stream.       |
+
+- 方法
+
+| Modifier and Type        | Method and Description                                       |
+| :----------------------- | :----------------------------------------------------------- |
+| `static void`            | `arraycopy(Object src, int srcPos, Object dest, int destPos, int length)`Copies an array from the specified source array, beginning at the specified position, to the specified position of the destination array. |
+| `static String`          | `clearProperty(String key)`Removes the system property indicated by the specified key. |
+| `static Console`         | `console()`Returns the unique [`Console`](https://docs.oracle.com/javase/8/docs/api/java/io/Console.html) object associated with the current Java virtual machine, if any. |
+| `static long`            | `currentTimeMillis()`Returns the current time in milliseconds. |
+| `static void`            | `exit(int status)`Terminates the currently running Java Virtual Machine. |
+| `static void`            | `gc()`Runs the garbage collector.                            |
+| `static Map`             | `getenv()`Returns an unmodifiable string map view of the current system environment. |
+| `static String`          | `getenv(String name)`Gets the value of the specified environment variable. |
+| `static Properties`      | `getProperties()`Determines the current system properties.   |
+| `static String`          | `getProperty(String key)`Gets the system property indicated by the specified key. |
+| `static String`          | `getProperty(String key, String def)`Gets the system property indicated by the specified key. |
+| `static SecurityManager` | `getSecurityManager()`Gets the system security interface.    |
+| `static int`             | `identityHashCode(Object x)`Returns the same hash code for the given object as would be returned by the default method hashCode(), whether or not the given object's class overrides hashCode(). |
+| `static Channel`         | `inheritedChannel()`Returns the channel inherited from the entity that created this Java virtual machine. |
+| `static String`          | `lineSeparator()`Returns the system-dependent line separator string. |
+| `static void`            | `load(String filename)`Loads the native library specified by the filename argument. |
+| `static void`            | `loadLibrary(String libname)`Loads the native library specified by the `libname` argument. |
+| `static String`          | `mapLibraryName(String libname)`Maps a library name into a platform-specific string representing a native library. |
+| `static long`            | `nanoTime()`Returns the current value of the running Java Virtual Machine's high-resolution time source, in nanoseconds. |
+| `static void`            | `runFinalization()`Runs the finalization methods of any objects pending finalization. |
+| `static void`            | `runFinalizersOnExit(boolean value)`**Deprecated.** This method is inherently unsafe. It may result in finalizers being called on live objects while other threads are concurrently manipulating those objects, resulting in erratic behavior or deadlock. |
+| `static void`            | `setErr(PrintStream err)`Reassigns the "standard" error output stream. |
+| `static void`            | `setIn(InputStream in)`Reassigns the "standard" input stream. |
+| `static void`            | `setOut(PrintStream out)`Reassigns the "standard" output stream. |
+| `static void`            | `setProperties(Properties props)`Sets the system properties to the `Properties` argument. |
+| `static String`          | `setProperty(String key, String value)`Sets the system property indicated by the specified key. |
+| `static void`            | `setSecurityManager(SecurityManager s)`Sets the System security. |
+
 
 
 ## 6 java集合
@@ -2505,68 +2640,78 @@ SimpleDateFormat sdf = new SimpleDateFormat();
 
 ### 6.1 Collection
 
-```java
-// 多态：创建一个集合的实现类的对象
-Collection c = new ArrayList();
+- api
 
-//----------API-------------
-// 集合添加元素 返回布尔
-add(E e);
-// 添加多项 返回布尔
-addAll(Collection c);
-// 元素个数 返回int
-size();
-// 清除所有 无返回值
-clear(); 
-//是否为空
-isEmpty();
-// 是否包含指定元素 元素是对象时 默认比地址 equals重写比的是内容
-// 向Collection集合添加对象所在的类要求必须重写e
-contains(Object o);
-// 是否包含另一个集合的所有元素
-ContainsAll(Collection c);
-// 比较两个集合是否相同 元素类型 顺序 个数
-equals(Object o);
-// 哈希值
-hashCode();
-// 删除某个元素 由于重写了equals方法 所以可以remove
-remove(Object o);
-// 删除另一个集合所有元素(交集部分)
-removeAll();
-// 保留交集部分
-retainAll();
-// 转数组
-toArray();
-```
+  ```java
+  // 多态：创建一个集合的实现类的对象
+  Collection c = new ArrayList();
+  // 通过Arrays.asList构造
+  List<Integer> list = Arrays.asList(1, 2, 43);
+  
+  //----------API-------------
+  // 集合添加元素 返回布尔
+  add(E e);
+  // 添加多项 返回布尔
+  addAll(Collection c);
+  // 删除某个元素 由于重写了equals方法 所以可以remove
+  remove(Object o);
+  // 删除另一个集合所有元素(交集部分)
+  removeAll();
+  
+  
+  // 元素个数 返回int
+  size();
+  // 清除所有 无返回值
+  clear(); 
+  //是否为空
+  isEmpty();
+  
+  // 是否包含指定元素 元素是对象时 默认比地址 equals重写比的是内容
+  // 向Collection集合添加对象所在的类要求必须重写equals
+  contains(Object o);
+  // 是否包含另一个集合的所有元素 (调用equals)
+  ContainsAll(Collection c);
+  
+  // 哈希值
+  hashCode();
+  // 比较两个集合是否相同 元素类型 顺序 个数
+  equals(Object o);
+  
+  // 保留交集部分
+  retainAll();
+  // 转数组
+  toArray();
+  ```
 
 - Iterator迭代器
 
   ```java
-  Collection c = new ArrayList();
-  // interator()返回了一个实现iterator接口的实现类的对象
-  c.add(111);
-    c.add(222);
-    c.add(333);
+  List<Integer> list = Arrays.asList(1, 2, 43);
     // 返回一个新的对象
-    Iterator iterator = c.iterator();
+    Iterator iterator = list.iterator();
     // 指针下移 返回指针指向的元素
     iterator.next();
     // 是否有下一个元素
     iterator.hasNext();
     // 打印所有元素
     while(iterator.hasNext()){
-        ...print(iterator.next());
+        sout(iterator.next());
     }
+  
+  // 移除
+  iterator.remove()
   ```
-
+  
 - 增强for循环(forEach)
 
   > 用来遍历数组和集合中的元素
+>
+  > 内部就是迭代器
 
    ```java
    for(元素的类型 变量名: 数组或集合的对象名){
         	
-    }
+  }
    ```
 
   ```java
@@ -2590,20 +2735,16 @@ toArray();
   // 注意 并没有修改元素的值 只是修改了临时变量
   for(Object name: c){
       name = "test";
-  }
+}
   ```
-
-  
-
-  
 
 ### 6.2 List
 
-| 分类       | 说明                                                         |
-| ---------- | ------------------------------------------------------------ |
-| ArrayList  | 底层是数组<br />查找快，增删慢<br />线程不安全 效率高        |
-| LibkedList | 底层是双向链表<br />增删快，查找慢                           |
-| vector     | 古老的实现类（已经不用了）<br />底层也是数组<br />线程安全 效率低 |
+| 分类       | 底层                                                       | 特点|
+| ---------- | ------------------------------------------------------------ | --- |
+| ArrayList  | 数组        | 查找快，增删慢 线程不安全 效率高 |
+| LinkedList | 双向链表                           | 增删快，查找慢 |
+| ~~vector~~ | 数组 |线程安全 效率低|
 
 
 
@@ -2618,12 +2759,10 @@ toArray();
   // 底层创建一个指定大小的数组
   ```
 
-  
-
   - API
 
   ```java
-  List list = new ArrayList();
+List list = new ArrayList();
   // 指定位置加入元素 无返回值
   list.add(int index,Object ele);
   // 指定位置加入集合中的所有元素 返回布尔
@@ -2643,7 +2782,7 @@ toArray();
   // 获取子集合
   list.subList(int startIndex,int endIndex);
   ```
-
+  
   
 
 - ***LinkedList***
